@@ -58,7 +58,8 @@ export default function Rondas({ perfil }) {
 
   return (
     <div>
-      <h2>Rondas (recorridos)</h2>
+      <h2>Recorridos</h2>
+      <p className="hora">Un recorrido es el orden de los puntos a visitar. Las rondas (hora + recorrido) se asignan a cada guardia en la pestaña Empleados.</p>
       <form className="fila" onSubmit={crearRonda}>
         <input placeholder="Nombre del recorrido (ej. Perímetro)" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <button className="primario" type="submit">Crear</button>

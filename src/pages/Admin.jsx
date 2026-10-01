@@ -15,7 +15,7 @@ export default function Admin({ perfil }) {
       <div className="tabs">
         {tab('reporte', 'Reporte')}
         {tab('empleados', 'Empleados')}
-        {tab('rondas', 'Rondas')}
+        {tab('rondas', 'Recorridos')}
         {tab('puntos', 'Puntos')}
       </div>
       {vista === 'reporte' && <Reporte perfil={perfil} />}

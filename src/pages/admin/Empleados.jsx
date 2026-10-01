@@ -117,7 +117,7 @@ function Programacion({ empleado, rondas }) {
 
   return (
     <div className="detalle">
-      <h3>Programación de {empleado.nombre}</h3>
+      <h3>Rondas de {empleado.nombre} (hora + recorrido)</h3>
       {rondas.length === 0 ? (
         <p className="hora">Primero creá al menos un recorrido en la pestaña "Rondas".</p>
       ) : (

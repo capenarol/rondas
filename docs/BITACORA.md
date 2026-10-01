@@ -66,9 +66,17 @@ como `juan@rondas.local` y el login le agrega `@rondas.local` de forma invisible
 - [ ] Fase 4 — Export CSV/PDF del reporte, modo offline del escaneo, pulido PWA,
   cambio de contraseña en la app.
 
+## Terminología (importante)
+
+- **Recorrido** = orden de los puntos NFC a visitar (ruta A, ruta B…). En la BD es la tabla
+  `rondas` + `ronda_puntos` (nombre heredado; en la UI se muestra como "Recorridos").
+- **Ronda** = lo que el supervisor asigna al guardia: *hora + recorrido* (00:00 ruta A, 01:00
+  ruta B…). En la BD es la tabla `programacion`. En la UI: pestaña Empleados → "Rondas de X".
+  (Si algún día conviene, se pueden renombrar las tablas; por ahora solo cambian las etiquetas.)
+
 ## Modelo refinado (migración 02)
 
-- **Ronda** = recorrido (puntos ordenados). Sin hora ni tolerancia por punto.
+- **Recorrido** (tabla `rondas`) = puntos ordenados. Sin hora ni tolerancia por punto.
 - **programacion** (tabla nueva): por empleado, filas {ronda, hora_inicio}. El "número de
   ronda" se deriva ordenando por hora. El guardia ve sus pases del día (número + hora).
 - **ejecuciones_ronda**: ahora con `programacion_id`, `numero`, `hora_inicio`; una por
