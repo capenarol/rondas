@@ -71,3 +71,14 @@ button { cursor: pointer; font-size: 15px; }
 .estado-a_tiempo { background: #052e16; color: #4ade80; }
 .estado-tarde { background: #422006; color: #fbbf24; }
 .estado-temprano { background: #0b1220; color: var(--suave); }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab { background: var(--panel); border: 1px solid var(--borde); color: var(--suave);
+  border-radius: 10px; padding: 8px 14px; }
+.tab.activa { color: var(--texto); border-color: var(--primario); }
+.fila { display: flex; gap: 8px; margin: 12px 0; }
+.fila input { flex: 1; }
+.chico { background: var(--primario); color: #06220f; border: none; border-radius: 8px;
+  padding: 8px 12px; font-weight: 600; white-space: nowrap; }
+.chico:disabled { opacity: .6; }
+small.hora { font-size: 12px; }
