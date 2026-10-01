@@ -82,3 +82,8 @@ button { cursor: pointer; font-size: 15px; }
   padding: 8px 12px; font-weight: 600; white-space: nowrap; }
 .chico:disabled { opacity: .6; }
 small.hora { font-size: 12px; }
+select { padding: 12px; border-radius: 10px; border: 1px solid var(--borde);
+  background: #0b1220; color: var(--texto); font-size: 15px; }
+.fila select { flex: 1; }
+.detalle { margin-top: 20px; border-top: 1px solid var(--borde); padding-top: 12px; }
+.lista li input[type="time"], .lista li input[type="number"] { padding: 6px 8px; font-size: 14px; }

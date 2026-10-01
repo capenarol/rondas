@@ -41,27 +41,43 @@ en el perímetro; se guarda punto + hora (del servidor) + guardia. El encargado 
 Al ejecutar: `ejecuciones_ronda` (ronda+guardia+fecha) → `registros_escaneo` (inmutables).
 Detalle completo en `supabase/schema.sql`.
 
+## Despliegue (en producción)
+
+- **Supabase** `rondas` (ID `mxdthjnnivqpnswaowgn`): esquema aplicado.
+- **GitHub** `capenarol/rondas`: push manda a producción. Script `subir.bat` en la raíz
+  hace add+commit+push.
+- **Netlify** sitio `rondas-cap`: `rondas-cap.netlify.app` y `rondas.estadiocds.uy`
+  (cubierto por el cert wildcard `*.estadiocds.uy`). Variables `VITE_SUPABASE_URL` y
+  `VITE_SUPABASE_ANON_KEY` (publishable key) cargadas en Netlify.
+
+## Login por usuario (sin email)
+
+Supabase Auth exige email. Se usa un email interno sintético: el usuario `juan` se guarda
+como `juan@rondas.local` y el login le agrega `@rondas.local` de forma invisible
+(`src/lib/auth.js`). Nadie usa correo real. El admin quedó como `admin@rondas.local`.
+
 ## Estado actual (fases)
 
-- [x] Fase 0 — Setup: repo, esquema de BD, scaffold Vite+React+PWA, netlify.toml.
-- [ ] Fase 1 — Auth y roles (login + ruteo por rol: hecho en el scaffold; falta pulir).
-- [ ] Fase 2 — Escaneo NFC y registro (pantalla del guardia: base hecha; probar con tarjetas).
-- [ ] Fase 3 — Panel del encargado + ABM de sitios/puntos/rondas/usuarios (admin).
+- [x] Fase 0 — Setup: repo, esquema de BD, scaffold Vite+React+PWA, netlify.toml, deploy.
+- [x] Fase 1 — Auth y roles: login por usuario + ruteo por rol.
+- [x] Fase 2 — Escaneo NFC y registro: pantalla del guardia funcionando.
+- [~] Fase 3 — Panel admin: Puntos (alta + asignar tarjeta por escaneo) y Rondas
+  (crear, elegir puntos, hora y tolerancia) HECHO. Falta **gestión de usuarios**
+  (alta de guardias) desde el panel.
 - [ ] Fase 4 — Reportes (export CSV/PDF), modo offline del escaneo, pulido PWA.
 
-## Pendientes inmediatos
+## Pendiente clave: alta de usuarios desde el panel
 
-1. Ejecutar `supabase/schema.sql` en el proyecto `rondas`.
-2. Cargar `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API Keys) en `.env.local` y Netlify.
-3. Crear el sitio en Netlify conectado al repo + subdominio.
-4. Crear usuario admin y cargar un sitio, un par de puntos (con el UID de tus tarjetas de
-   prueba) y una ronda de prueba para escanear.
+Crear usuarios de Auth desde el frontend no es seguro (requiere service_role). Opciones:
+una **Edge Function** de Supabase con la service_role key que cree el usuario
+(`juan@rondas.local`) + su perfil con rol/sitio, llamada desde el panel admin; o seguir
+creándolos con SQL / Dashboard por ahora. Mientras tanto, el alta de admin/guardias se hace
+con los bloques SQL de `supabase/seed.sql` y los que están en el historial de la sesión.
 
-## Cómo obtener el UID de una tarjeta para cargarla
+## Capturar el UID de una tarjeta
 
-En la pantalla del guardia, al escanear una tarjeta no reconocida, la app muestra el UID.
-Ese valor se carga en `puntos_control.nfc_uid` del punto correspondiente (en Fase 3 habrá
-pantalla; por ahora se puede cargar desde el Table Editor de Supabase).
+Ya no se hace a mano: en el panel admin → Puntos, botón **Escanear** lee la tarjeta y
+guarda el UID en el punto. (El UID es el `serialNumber` de la Web NFC API, en minúsculas.)
 
 ## Plan de referencia
 
