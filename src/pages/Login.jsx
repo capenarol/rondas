@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { emailDesdeUsuario } from '../lib/auth.js'
 
-// Login con email + contraseña (Supabase Auth).
+// Login con usuario (sin @) + contraseña. El usuario se mapea a un email interno.
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -12,7 +13,10 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setCargando(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailDesdeUsuario(usuario),
+      password
+    })
     setCargando(false)
     if (error) setError('Usuario o contraseña incorrectos.')
   }
@@ -21,9 +25,10 @@ export default function Login() {
     <div className="centro">
       <form className="tarjeta" onSubmit={entrar}>
         <h1>Rondas de Guardias</h1>
-        <label>Usuario (email)
-          <input type="email" value={email} autoComplete="username"
-                 onChange={(e) => setEmail(e.target.value)} required />
+        <label>Usuario
+          <input type="text" value={usuario} autoComplete="username"
+                 autoCapitalize="none" autoCorrect="off" spellCheck="false"
+                 onChange={(e) => setUsuario(e.target.value)} required />
         </label>
         <label>Contraseña
           <input type="password" value={password} autoComplete="current-password"
