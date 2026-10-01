@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import Login from './pages/Login.jsx'
 import Guardia from './pages/Guardia.jsx'
-import Encargado from './pages/Encargado.jsx'
+import Reporte from './pages/admin/Reporte.jsx'
 import Admin from './pages/Admin.jsx'
 
 export default function App() {
@@ -51,7 +51,7 @@ export default function App() {
   return (
     <Shell perfil={perfil} salir={salir}>
       {perfil.rol === 'admin' && <Admin perfil={perfil} />}
-      {perfil.rol === 'encargado' && <Encargado perfil={perfil} />}
+      {perfil.rol === 'encargado' && <Reporte perfil={perfil} />}
       {perfil.rol === 'guardia' && <Guardia perfil={perfil} />}
     </Shell>
   )

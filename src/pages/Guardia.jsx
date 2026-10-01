@@ -2,129 +2,94 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { leerTarjeta, nfcDisponible } from '../lib/nfc.js'
 
-// Pantalla del guardia: elegir ronda del día y escanear los puntos.
+const hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Montevideo' })
+const hhmm = (t) => (t || '').slice(0, 5)
+
+// Pantalla del guardia: sus rondas programadas del día; escanea los puntos.
 export default function Guardia({ perfil }) {
-  const [rondas, setRondas] = useState([])
-  const [rondaSel, setRondaSel] = useState(null)
+  const [pases, setPases] = useState([])
+  const [sel, setSel] = useState(null)       // pase seleccionado (con numero)
   const [ejecucion, setEjecucion] = useState(null)
-  const [puntos, setPuntos] = useState([])        // ronda_puntos + datos del punto
-  const [escaneados, setEscaneados] = useState({}) // punto_id -> escaneado_en
+  const [puntos, setPuntos] = useState([])
+  const [escaneados, setEscaneados] = useState({})
   const [mensaje, setMensaje] = useState('')
   const [escaneando, setEscaneando] = useState(false)
 
-  // Cargar rondas del sitio del guardia.
   useEffect(() => {
-    supabase.from('rondas')
-      .select('id, nombre, turno')
-      .eq('sitio_id', perfil.sitio_id)
-      .eq('activo', true)
-      .order('nombre')
-      .then(({ data }) => setRondas(data || []))
-  }, [perfil.sitio_id])
+    supabase.from('programacion')
+      .select('id, hora_inicio, ronda:rondas(id, nombre)')
+      .eq('guardia_id', perfil.id).eq('activo', true)
+      .order('hora_inicio')
+      .then(({ data }) => setPases((data || []).map((p, i) => ({ ...p, numero: i + 1 }))))
+  }, [perfil.id])
 
-  // Al elegir una ronda: asegurar ejecución de hoy y cargar puntos + escaneos.
-  async function abrirRonda(ronda) {
-    setRondaSel(ronda)
-    setMensaje('')
+  async function abrir(pase) {
+    setSel(pase); setMensaje('')
+    const fecha = hoy()
 
-    // Puntos de la ronda (con nfc_uid del punto, para hacer el match).
     const { data: rp } = await supabase.from('ronda_puntos')
-      .select('orden, hora_esperada, tolerancia_min, punto:puntos_control(id, nombre, nfc_uid)')
-      .eq('ronda_id', ronda.id)
-      .order('orden')
+      .select('orden, punto:puntos_control(id, nombre, nfc_uid)')
+      .eq('ronda_id', pase.ronda?.id).order('orden')
     setPuntos(rp || [])
 
-    // Buscar ejecución de hoy; si no existe, crearla.
-    let { data: ej } = await supabase.from('ejecuciones_ronda')
-      .select('id')
-      .eq('ronda_id', ronda.id)
-      .eq('guardia_id', perfil.id)
-      .order('fecha', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!ej) {
+    let { data: eje } = await supabase.from('ejecuciones_ronda')
+      .select('id').eq('programacion_id', pase.id)
+      .eq('guardia_id', perfil.id).eq('fecha', fecha).maybeSingle()
+    if (!eje) {
       const ins = await supabase.from('ejecuciones_ronda')
-        .insert({ ronda_id: ronda.id, guardia_id: perfil.id })
-        .select('id')
-        .single()
-      ej = ins.data
+        .insert({ ronda_id: pase.ronda?.id, guardia_id: perfil.id, programacion_id: pase.id,
+                  numero: pase.numero, hora_inicio: pase.hora_inicio, fecha })
+        .select('id').single()
+      eje = ins.data
     }
-    setEjecucion(ej)
-
-    if (ej) {
+    setEjecucion(eje)
+    if (eje) {
       const { data: regs } = await supabase.from('registros_escaneo')
-        .select('punto_id, escaneado_en')
-        .eq('ejecucion_id', ej.id)
-      const mapa = {}
-      for (const r of regs || []) mapa[r.punto_id] = r.escaneado_en
-      setEscaneados(mapa)
+        .select('punto_id, escaneado_en').eq('ejecucion_id', eje.id)
+      const m = {}; for (const r of regs || []) m[r.punto_id] = r.escaneado_en
+      setEscaneados(m)
     }
   }
 
   async function escanear() {
     if (!ejecucion) return
-    setMensaje('')
-    setEscaneando(true)
+    setMensaje(''); setEscaneando(true)
     try {
       const { serialNumber } = await leerTarjeta()
       const uid = (serialNumber || '').toLowerCase()
-
-      // Buscar el punto de ESTA ronda cuyo nfc_uid coincide.
-      const item = puntos.find(
-        (p) => (p.punto.nfc_uid || '').toLowerCase() === uid
-      )
-      if (!item) {
-        setMensaje('⚠️ Tarjeta no reconocida en esta ronda (UID ' + uid + ').')
-        return
-      }
-      if (escaneados[item.punto.id]) {
-        setMensaje('ℹ️ "' + item.punto.nombre + '" ya estaba registrado.')
-        return
-      }
-
-      // Insertar. La hora la pone el servidor; el UNIQUE evita duplicados.
+      const item = puntos.find((p) => (p.punto.nfc_uid || '').toLowerCase() === uid)
+      if (!item) { setMensaje('⚠️ Tarjeta no reconocida en esta ronda (UID ' + uid + ').'); return }
+      if (escaneados[item.punto.id]) { setMensaje('ℹ️ "' + item.punto.nombre + '" ya estaba registrado.'); return }
       const { error } = await supabase.from('registros_escaneo')
-        .insert({
-          ejecucion_id: ejecucion.id,
-          punto_id: item.punto.id,
-          guardia_id: perfil.id,
-          nfc_uid: uid
-        })
-      if (error && error.code !== '23505') { // 23505 = unique_violation (duplicado)
-        setMensaje('Error al registrar: ' + error.message)
-        return
-      }
+        .insert({ ejecucion_id: ejecucion.id, punto_id: item.punto.id, guardia_id: perfil.id, nfc_uid: uid })
+      if (error && error.code !== '23505') { setMensaje('Error al registrar: ' + error.message); return }
       setEscaneados((prev) => ({ ...prev, [item.punto.id]: new Date().toISOString() }))
       setMensaje('✅ "' + item.punto.nombre + '" registrado.')
     } catch (err) {
       setMensaje(err.message || 'No se pudo escanear.')
-    } finally {
-      setEscaneando(false)
-    }
+    } finally { setEscaneando(false) }
   }
 
   if (!nfcDisponible()) {
     return (
       <div className="tarjeta">
         <h2>NFC no disponible</h2>
-        <p>Esta app necesita <strong>Chrome en Android</strong> para leer tarjetas NFC.
-           Abrila desde ese navegador en el celular.</p>
+        <p>Esta app necesita <strong>Chrome en Android</strong> para leer tarjetas. Abrila desde el celular.</p>
       </div>
     )
   }
 
-  if (!rondaSel) {
+  if (!sel) {
     return (
       <div>
-        <h2>Elegí tu ronda</h2>
-        {rondas.length === 0 && <p>No hay rondas asignadas a tu sitio todavía.</p>}
+        <h2>Tus rondas de hoy</h2>
+        {pases.length === 0 && <p>No tenés rondas programadas. Avisá al encargado.</p>}
         <ul className="lista">
-          {rondas.map((r) => (
-            <li key={r.id}>
-              <button className="item" onClick={() => abrirRonda(r)}>
-                <strong>{r.nombre}</strong>{r.turno ? ' · ' + r.turno : ''}
-              </button>
+          {pases.map((p) => (
+            <li key={p.id}>
+              <span className="orden">{p.numero}</span>
+              <span className="nombre"><strong>{hhmm(p.hora_inicio)}</strong> · {p.ronda?.nombre}</span>
+              <button className="chico" onClick={() => abrir(p)}>Abrir</button>
             </li>
           ))}
         </ul>
@@ -137,9 +102,9 @@ export default function Guardia({ perfil }) {
 
   return (
     <div>
-      <button className="link" onClick={() => setRondaSel(null)}>← Volver</button>
-      <h2>{rondaSel.nombre}</h2>
-      <p className="progreso">{hechos} / {total} puntos</p>
+      <button className="link" onClick={() => { setSel(null); setEjecucion(null) }}>← Volver</button>
+      <h2>Ronda {sel.numero} · {hhmm(sel.hora_inicio)}</h2>
+      <p className="hora">{sel.ronda?.nombre} — {hechos} / {total} puntos</p>
 
       <button className="primario grande" onClick={escanear} disabled={escaneando}>
         {escaneando ? 'Acercá la tarjeta…' : 'Escanear punto'}
@@ -154,7 +119,7 @@ export default function Guardia({ perfil }) {
             <span className="hora">
               {escaneados[p.punto.id]
                 ? new Date(escaneados[p.punto.id]).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })
-                : (p.hora_esperada?.slice(0, 5) || '')}
+                : '—'}
             </span>
           </li>
         ))}

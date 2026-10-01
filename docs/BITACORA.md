@@ -61,18 +61,29 @@ como `juan@rondas.local` y el login le agrega `@rondas.local` de forma invisible
 - [x] Fase 0 — Setup: repo, esquema de BD, scaffold Vite+React+PWA, netlify.toml, deploy.
 - [x] Fase 1 — Auth y roles: login por usuario + ruteo por rol.
 - [x] Fase 2 — Escaneo NFC y registro: pantalla del guardia funcionando.
-- [~] Fase 3 — Panel admin: Puntos (alta + asignar tarjeta por escaneo) y Rondas
-  (crear, elegir puntos, hora y tolerancia) HECHO. Falta **gestión de usuarios**
-  (alta de guardias) desde el panel.
-- [ ] Fase 4 — Reportes (export CSV/PDF), modo offline del escaneo, pulido PWA.
+- [x] Fase 3 — Panel admin con pestañas: Reporte, Empleados (alta/baja + programación),
+  Rondas (recorridos = puntos ordenados) y Puntos (alta + asignar tarjeta por escaneo).
+- [ ] Fase 4 — Export CSV/PDF del reporte, modo offline del escaneo, pulido PWA,
+  cambio de contraseña en la app.
 
-## Pendiente clave: alta de usuarios desde el panel
+## Modelo refinado (migración 02)
 
-Crear usuarios de Auth desde el frontend no es seguro (requiere service_role). Opciones:
-una **Edge Function** de Supabase con la service_role key que cree el usuario
-(`juan@rondas.local`) + su perfil con rol/sitio, llamada desde el panel admin; o seguir
-creándolos con SQL / Dashboard por ahora. Mientras tanto, el alta de admin/guardias se hace
-con los bloques SQL de `supabase/seed.sql` y los que están en el historial de la sesión.
+- **Ronda** = recorrido (puntos ordenados). Sin hora ni tolerancia por punto.
+- **programacion** (tabla nueva): por empleado, filas {ronda, hora_inicio}. El "número de
+  ronda" se deriva ordenando por hora. El guardia ve sus pases del día (número + hora).
+- **ejecuciones_ronda**: ahora con `programacion_id`, `numero`, `hora_inicio`; una por
+  pase y día. El margen de tiempo NO se calcula: el encargado/admin lo juzga en el reporte.
+- **Reporte** (admin y encargado): por empleado + día, cada pase (N° + hora de inicio) y la
+  hora real marcada en cada punto.
+- `perfiles.usuario` guarda el usuario (sin @) para mostrarlo en el panel.
+
+## Alta de empleados: Edge Function
+
+Función `crear-empleado` desplegada en Supabase (Edge Functions), Verify JWT = OFF, valida
+internamente que el llamador sea admin. Crea el usuario `usuario@rondas.local` (confirmado)
+con la service_role y deja el perfil como guardia del sitio. Fuente en
+`supabase/functions/crear-empleado/index.ts`. El panel Empleados la llama vía
+`supabase.functions.invoke('crear-empleado')`. La **baja** desactiva (perfiles.activo=false).
 
 ## Capturar el UID de una tarjeta
 

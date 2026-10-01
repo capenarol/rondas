@@ -87,3 +87,33 @@ select { padding: 12px; border-radius: 10px; border: 1px solid var(--borde);
 .fila select { flex: 1; }
 .detalle { margin-top: 20px; border-top: 1px solid var(--borde); padding-top: 12px; }
 .lista li input[type="time"], .lista li input[type="number"] { padding: 6px 8px; font-size: 14px; }
+
+/* ---- Táctil / mobile ---- */
+button, .tab, .chico, .primario { min-height: 44px; }
+input, select { min-height: 44px; }
+.tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; }
+.tabla-wrap .tabla { margin-top: 0; }
+
+.tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tab { white-space: nowrap; flex: 0 0 auto; }
+.tarjeta-form { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.lista li.inactivo { opacity: .55; }
+.pase { margin-top: 16px; }
+.pase h3 { margin-bottom: 4px; }
+.pase.pendiente { opacity: .75; }
+
+@media (max-width: 560px) {
+  .contenido { padding: 12px; }
+  .barra { padding: 10px 12px; gap: 8px; }
+  .barra .rol { font-size: 12px; }
+  h1 { font-size: 18px; }
+  h2 { font-size: 16px; }
+  .lista li { flex-wrap: wrap; row-gap: 8px; }
+  .lista li .nombre { flex: 1 1 60%; }
+  .fila { flex-wrap: wrap; }
+  .fila input, .fila select { flex: 1 1 100%; }
+  .fila button { flex: 1 1 100%; }
+  .tabla { font-size: 13px; }
+  .tabla th, .tabla td { padding: 6px; }
+  .grande { padding: 20px; font-size: 19px; }
+}

@@ -27,6 +27,7 @@ export default function Encargado({ perfil }) {
       {!cargando && filas.length === 0 && <p>No hay escaneos para esta fecha.</p>}
 
       {filas.length > 0 && (
+        <div className="tabla-wrap">
         <table className="tabla">
           <thead>
             <tr><th>Ronda</th><th>Punto</th><th>Guardia</th><th>Esperada</th><th>Real</th><th>Estado</th></tr>
@@ -44,6 +45,7 @@ export default function Encargado({ perfil }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )
