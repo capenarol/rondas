@@ -1,13 +1,13 @@
-// Edge Function: crear-empleado
-// Crea un usuario de login (guardia) con la service_role (del lado servidor).
-// Solo un admin autenticado puede llamarla. El guardia entra con "usuario" (sin @):
-// se guarda como usuario@rondas.local. Desplegada con Verify JWT = OFF; la función
-// valida al que llama (getUser + rol admin). Deploy: Supabase Dashboard -> Edge Functions.
+// Edge Function: crear-empleado (gestión de guardias con service_role)
+// Solo un admin autenticado puede usarla. Acciones:
+//   - crear  (por defecto): crea usuario usuario@rondas.local + perfil guardia del sitio.
+//   - eliminar: borra el usuario de Auth (y su perfil en cascada) por id.
+// Verify JWT = OFF (la función valida al llamador). Deploy: Dashboard -> Edge Functions.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }
 const json = (status, obj) =>
@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const authHeader = req.headers.get('Authorization') || ''
 
-    // Verificar que quien llama sea admin.
     const asUser = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } })
     const { data: ud } = await asUser.auth.getUser()
     const caller = ud && ud.user
@@ -29,9 +28,20 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, serviceKey)
     const { data: perfilCaller } = await admin.from('perfiles').select('rol, sitio_id').eq('id', caller.id).single()
-    if (!perfilCaller || perfilCaller.rol !== 'admin') return json(403, { error: 'Solo un admin puede crear empleados.' })
+    if (!perfilCaller || perfilCaller.rol !== 'admin') return json(403, { error: 'Solo un admin puede gestionar empleados.' })
 
     const body = await req.json().catch(() => ({}))
+    const accion = String(body.accion || 'crear')
+
+    if (accion === 'eliminar') {
+      const id = String(body.id || '')
+      if (!id) return json(400, { error: 'Falta el id del empleado.' })
+      const { error: dErr } = await admin.auth.admin.deleteUser(id)
+      if (dErr) return json(400, { error: dErr.message })
+      return json(200, { ok: true, eliminado: id })
+    }
+
+    // crear
     const usuario = String(body.usuario || '').trim().toLowerCase()
     const password = String(body.password || '')
     const nombre = String(body.nombre || '').trim() || usuario

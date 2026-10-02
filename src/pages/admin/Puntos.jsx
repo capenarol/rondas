@@ -51,6 +51,12 @@ export default function Puntos({ perfil }) {
     cargar()
   }
 
+  async function eliminarPunto(punto) {
+    if (!window.confirm('¿Eliminar el punto "' + punto.nombre + '"?')) return
+    await supabase.from('puntos_control').delete().eq('id', punto.id)
+    cargar()
+  }
+
   return (
     <div>
       <h2>Puntos de control</h2>
@@ -69,7 +75,8 @@ export default function Puntos({ perfil }) {
             <span className="nombre">{p.nombre}<br />
               <small className="hora">{p.nfc_uid ? 'UID: ' + p.nfc_uid : '— sin tarjeta —'}</small>
             </span>
-            {p.nfc_uid && <button className="link" onClick={() => quitarTarjeta(p)}>Quitar</button>}
+            {p.nfc_uid && <button className="link" onClick={() => quitarTarjeta(p)}>Quitar tarjeta</button>}
+            <button className="link" onClick={() => eliminarPunto(p)}>Eliminar</button>
             <button className="chico" onClick={() => escanear(p)} disabled={scanId === p.id || !nfcDisponible()}>
               {scanId === p.id ? 'Acercá…' : (p.nfc_uid ? 'Reasignar' : 'Escanear')}
             </button>

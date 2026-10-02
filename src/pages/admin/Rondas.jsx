@@ -54,6 +54,13 @@ export default function Rondas({ perfil }) {
     cargarItems(sel.id)
   }
 
+  async function eliminarRecorrido(r) {
+    if (!window.confirm('¿Eliminar el recorrido "' + r.nombre + '"? Se quitará de las rondas que lo usen.')) return
+    await supabase.from('rondas').delete().eq('id', r.id)
+    if (sel?.id === r.id) setSel(null)
+    cargarRondas()
+  }
+
   const disponibles = puntos.filter((p) => !items.some((i) => i.punto?.id === p.id))
 
   return (
@@ -69,6 +76,7 @@ export default function Rondas({ perfil }) {
         {rondas.map((r) => (
           <li key={r.id} className={sel?.id === r.id ? 'ok' : ''}>
             <span className="nombre">{r.nombre}</span>
+            <button className="link" onClick={() => eliminarRecorrido(r)}>Eliminar</button>
             <button className="chico" onClick={() => setSel(sel?.id === r.id ? null : r)}>
               {sel?.id === r.id ? 'Cerrar' : 'Editar'}
             </button>

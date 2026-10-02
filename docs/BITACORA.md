@@ -98,6 +98,38 @@ con la service_role y deja el perfil como guardia del sitio. Fuente en
 Ya no se hace a mano: en el panel admin → Puntos, botón **Escanear** lee la tarjeta y
 guarda el UID en el punto. (El UID es el `serialNumber` de la Web NFC API, en minúsculas.)
 
+## Revisión del sistema (2026-10-02)
+
+Estado: el circuito completo funciona de punta a punta en mobile.
+- Auth por usuario + 3 roles; ruteo por rol; RLS en todas las tablas; Edge Function que
+  valida admin. La hora de escaneo la pone el servidor; dedupe por (ejecución, punto);
+  primer escaneo gana. Fechas calculadas en zona America/Montevideo.
+- Alta/baja/eliminación de guardias, recorridos y puntos; programación de rondas por guardia.
+- CORS de la Edge Function corregido (incluye `x-client-info`): el alta de empleados ya
+  funciona desde el navegador.
+- Mobile: targets táctiles ≥44px, listas que se apilan, formularios en columna, tabla con
+  scroll horizontal; el reporte usa listas (no tablas anchas).
+
+## Pendientes / mejoras (futuro)
+
+1. **Edición** in situ: hoy se crea/elimina pero no se editan nombres de recorrido/punto ni
+   la hora de una ronda (hay que borrar y recrear). Agregar edición inline.
+2. **Cambio de contraseña** dentro de la app (hoy solo desde Supabase → Auth).
+3. **Modo offline** del escaneo: encolar escaneos sin señal y sincronizar (Fase 4).
+4. **Export** del reporte a CSV/PDF (Fase 4).
+5. **Reporte del día / todos los guardias** para el encargado (hoy es por empleado + fecha).
+6. **Limpieza**: `src/pages/Encargado.jsx` y la vista `vista_escaneos` ya no se usan (los
+   reemplazó el Reporte nuevo). Se pueden eliminar.
+7. Mostrar mensajes de carga/vacío más ricos y confirmaciones visuales (hoy hay básicos).
+
+## Notas de despliegue
+
+- **Frontend**: se publica con `subir.bat` (git push → Netlify redeploya). Sitio **público**.
+- **Base de datos**: `schema.sql` + `migracion_02_programacion.sql` ya aplicados en Supabase
+  (NO se redeployan con git; se corren en el SQL Editor si se recrea el proyecto).
+- **Edge Function**: `crear-empleado` ya desplegada (Verify JWT OFF). Si se recrea, subir el
+  código de `supabase/functions/crear-empleado/index.ts` desde Dashboard → Edge Functions.
+
 ## Plan de referencia
 
 Documento de planificación (Claude Doc):

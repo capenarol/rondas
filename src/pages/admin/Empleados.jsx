@@ -34,16 +34,31 @@ export default function Empleados({ perfil }) {
       body: { nombre: nombre.trim(), usuario: usuario.trim(), password, sitio_id: perfil.sitio_id }
     })
     setCreando(false)
-    if (error || data?.error) {
-      setMsg('Error: ' + (data?.error || error.message || 'no se pudo crear'))
-      return
-    }
+    if (error || data?.error) { setMsg('Error: ' + await detalleError(error, data)); return }
     setNombre(''); setUsuario(''); setPassword(''); setMsg('✅ Empleado creado.'); cargar()
   }
 
   async function toggleActivo(emp) {
     await supabase.from('perfiles').update({ activo: !emp.activo }).eq('id', emp.id)
     cargar()
+  }
+
+  async function eliminar(emp) {
+    if (!window.confirm('¿Eliminar a ' + emp.nombre + ' y todo su historial? No se puede deshacer.')) return
+    setMsg('')
+    const { data, error } = await supabase.functions.invoke('crear-empleado', {
+      body: { accion: 'eliminar', id: emp.id }
+    })
+    if (error || data?.error) { setMsg('Error: ' + await detalleError(error, data)); return }
+    if (sel?.id === emp.id) setSel(null)
+    setMsg('Empleado eliminado.'); cargar()
+  }
+
+  // Extrae el mensaje real del error de la Edge Function (si no, el genérico).
+  async function detalleError(error, data) {
+    if (data?.error) return data.error
+    try { const c = await error?.context?.json(); if (c?.error) return c.error } catch (_) {}
+    return error?.message || 'no se pudo completar'
   }
 
   return (
@@ -72,7 +87,8 @@ export default function Empleados({ perfil }) {
               {e.nombre}
               <br /><small className="hora">usuario: {e.usuario || '—'}{e.activo ? '' : ' · (baja)'}</small>
             </span>
-            <button className="link" onClick={() => toggleActivo(e)}>{e.activo ? 'Dar de baja' : 'Reactivar'}</button>
+            <button className="link" onClick={() => toggleActivo(e)}>{e.activo ? 'Baja' : 'Reactivar'}</button>
+            <button className="link" onClick={() => eliminar(e)}>Eliminar</button>
             <button className="chico" onClick={() => setSel(sel?.id === e.id ? null : e)}>
               {sel?.id === e.id ? 'Cerrar' : 'Rondas'}
             </button>
